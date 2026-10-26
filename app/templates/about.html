@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}About & Project Documentation - Electricity Bill Predictor{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="mb-4">
+        <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-1 mb-2">
+            Academic Project Documentation
+        </span>
+        <h2 class="fw-bold mb-1">About the Electricity Bill Prediction System</h2>
+        <p class="text-secondary">
+            Comprehensive overview of the system architecture, mathematical formulations, Machine Learning methodology, 
+            and defense preparation notes for MCA minor project viva.
+        </p>
+    </div>
+
+    <div class="row g-4">
+        <!-- Main Documentation Body -->
+        <div class="col-lg-8">
+            <!-- Project Abstract -->
+            <div class="card card-custom p-4 mb-4">
+                <h4 class="fw-bold border-bottom pb-2 mb-3">1. Executive Summary &amp; Abstract</h4>
+                <p class="text-secondary">
+                    Household and commercial electricity billing often presents unpredictability due to fluctuating weather,
+                    varying appliance loads, and billing cycle variations. This project implements a lightweight, explainable
+                    predictive web application using <strong>Python, Flask, Scikit-learn, SQLAlchemy, and SQLite</strong>.
+                </p>
+                <p class="text-secondary mb-0">
+                    Rather than treating billing as a pure black box, the system separates <strong>consumption forecasting</strong> 
+                    (units in kWh) from <strong>tariff computation</strong> (energy charges, fixed meter fees, and percentage duties).
+                    This structure guarantees transparency, allows users to configure their local tariffs, and provides clear auditability.
+                </p>
+            </div>
+
+            <!-- Mathematical Formulation -->
+            <div class="card card-custom p-4 mb-4">
+                <h4 class="fw-bold border-bottom pb-2 mb-3">2. Mathematical Formulation &amp; Billing Logic</h4>
+                <p class="text-secondary">
+                    The billing engine follows a multi-tiered formula:
+                </p>
+                <div class="bg-light p-3 rounded font-monospace small mb-3 border">
+                    1. Energy Charge = Predicted Monthly Consumption (kWh) &times; Tariff Rate per kWh<br>
+                    2. Additional Charges = Energy Charge &times; (Additional Charge Percentage / 100)<br>
+                    3. Estimated Total Bill = Energy Charge + Fixed Charges + Additional Charges
+                </div>
+                <p class="text-secondary small mb-0">
+                    Calculations utilize <code>decimal.Decimal</code> with half-up rounding to prevent floating-point accumulation errors.
+                </p>
+            </div>
+
+            <!-- Machine Learning Algorithms -->
+            <div class="card card-custom p-4 mb-4">
+                <h4 class="fw-bold border-bottom pb-2 mb-3">3. Machine Learning Methodology</h4>
+                
+                <h6 class="fw-bold text-primary">Model 1: Linear Regression</h6>
+                <p class="text-secondary small mb-3">
+                    Computes an optimal hyper-plane by minimizing the Ordinary Least Squares (OLS) residual sum of squares:
+                    <code>y = β₀ + β₁(Daily Usage) + β₂(Previous Month) + β₃(Billing Days) + ε</code>.
+                    It offers high interpretability and low computational overhead.
+                </p>
+
+                <h6 class="fw-bold text-success">Model 2: Random Forest Regressor</h6>
+                <p class="text-secondary small mb-3">
+                    An ensemble of 100 decorrelated decision trees using bootstrap aggregating (bagging) and feature subsampling.
+                    It captures non-linear appliance efficiency thresholds and interaction surges.
+                </p>
+
+                <h6 class="fw-bold text-dark">Data Leakage Prevention:</h6>
+                <p class="text-secondary small mb-0">
+                    Standardization (<code>StandardScaler</code>) is fit strictly on the 80% training partition.
+                    The test partition (20%, 300 samples) remains completely unseen during scaling and model fitting.
+                </p>
+            </div>
+
+            <!-- Viva Cheat Sheet -->
+            <div class="card card-custom p-4 mb-4">
+                <h4 class="fw-bold border-bottom pb-2 mb-3">
+                    <i class="bi bi-mortarboard text-warning me-2"></i>4. MCA Viva Frequently Asked Questions (FAQ)
+                </h4>
+
+                <div class="d-flex flex-column gap-3">
+                    <div class="p-3 bg-light rounded border">
+                        <strong class="text-dark">Q1: Why predict electricity consumption (kWh) first instead of the bill amount directly?</strong>
+                        <p class="small text-secondary mb-0 mt-1">
+                            <strong>Ans:</strong> Utility tariffs vary across regions, seasons, and customer categories. By predicting physical consumption (kWh) with Machine Learning, the model learns human usage dynamics that remain valid regardless of tariff changes. The financial bill is then calculated via configurable tariff rules.
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-light rounded border">
+                        <strong class="text-dark">Q2: Why did one model perform better than the other?</strong>
+                        <p class="small text-secondary mb-0 mt-1">
+                            <strong>Ans:</strong> Consumption is predominantly linear with respect to daily consumption and billing days. Linear Regression achieves lower variance with fewer degrees of freedom, whereas Random Forest may introduce slight step-function discretization error unless deep trees are used.
+                        </p>
+                    </div>
+
+                    <div class="p-3 bg-light rounded border">
+                        <strong class="text-dark">Q3: How does the application prevent out-of-distribution extrapolation?</strong>
+                        <p class="small text-secondary mb-0 mt-1">
+                            <strong>Ans:</strong> During training, the pipeline records the minimum, maximum, mean, and standard deviation of each feature in <code>metrics.json</code>. When a user submits values outside these bounds, the system displays an explicit extrapolation warning notice.
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar / Meta -->
+        <div class="col-lg-4">
+            <div class="card card-custom p-4 mb-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">Academic Project Details</h5>
+                <ul class="list-unstyled small text-secondary d-flex flex-column gap-2 mb-0">
+                    <li><strong>Degree:</strong> Master of Computer Applications (MCA)</li>
+                    <li><strong>Project Type:</strong> Minor Project</li>
+                    <li><strong>Domain:</strong> Machine Learning &amp; Web Systems</li>
+                    <li><strong>Frontend:</strong> Bootstrap 5, Chart.js</li>
+                    <li><strong>Backend:</strong> Python 3.13, Flask</li>
+                    <li><strong>Database:</strong> SQLite with SQLAlchemy ORM</li>
+                    <li><strong>Testing:</strong> Pytest</li>
+                </ul>
+            </div>
+
+            <div class="card card-custom p-4 mb-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">Real Dataset Replacement</h5>
+                <p class="small text-secondary mb-3">
+                    To transition from the synthetic demonstration dataset to real utility records:
+                </p>
+                <ol class="small text-secondary ps-3 mb-3">
+                    <li>Export smart-meter CSV records with columns matching <code>average_daily_consumption_kwh</code>, <code>previous_month_consumption_kwh</code>, <code>billing_days</code>, and <code>monthly_consumption_kwh</code>.</li>
+                    <li>Place file at <code>datasets/electricity_consumption.csv</code>.</li>
+                    <li>Run <code>python -m app.ml.train_models</code>.</li>
+                </ol>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

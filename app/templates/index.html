@@ -1,0 +1,218 @@
+{% extends "base.html" %}
+
+{% block title %}Home - Electricity Bill Prediction System{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="hero-section text-center text-lg-start">
+    <div class="container py-4">
+        <div class="row align-items-center gy-4">
+            <div class="col-lg-7">
+                <span class="hero-badge">
+                    <i class="bi bi-mortarboard-fill me-1"></i> MCA Minor Project 2026
+                </span>
+                <h1 class="display-5 fw-bold text-white mb-3">
+                    Electricity Bill Prediction System Using Machine Learning
+                </h1>
+                <p class="lead text-slate-300 text-light opacity-75 mb-4">
+                    An explainable, academic predictive platform that forecasts monthly electricity consumption 
+                    using <strong>Linear Regression</strong> and <strong>Random Forest Regressor</strong>, transparently calculating 
+                    estimated utility bills based on user-configurable flat tariffs.
+                </p>
+                <div class="d-flex flex-wrap gap-3 justify-content-center justify-content-lg-start">
+                    <a href="{{ url_for('main.predict') }}" class="btn btn-primary-custom btn-lg d-flex align-items-center gap-2">
+                        <i class="bi bi-calculator"></i> Estimate Monthly Bill
+                    </a>
+                    <a href="{{ url_for('main.model_evaluation') }}" class="btn btn-outline-light btn-lg d-flex align-items-center gap-2">
+                        <i class="bi bi-graph-up-arrow"></i> View Model Evaluation
+                    </a>
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary text-light btn-lg d-flex align-items-center gap-2">
+                        <i class="bi bi-speedometer2"></i> Dashboard
+                    </a>
+                </div>
+            </div>
+            
+            <div class="col-lg-5">
+                <div class="card card-custom p-4 bg-white shadow-lg text-dark">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="badge bg-primary text-white px-3 py-2 rounded-pill">Model Selection</span>
+                        <span class="small text-muted"><i class="bi bi-cpu me-1"></i> Held-out Test Set</span>
+                    </div>
+                    <h5 class="fw-bold mb-2">Preferred Algorithm</h5>
+                    <p class="text-secondary small mb-3">
+                        Based on empirical cross-evaluation of 300 test samples (80/20 train/test split):
+                    </p>
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <span class="fw-bold text-primary fs-5">{{ selected_model }}</span>
+                                <div class="small text-muted">Evaluated on Mean Absolute Error &amp; RMSE</div>
+                            </div>
+                            <span class="badge bg-success-subtle text-success border border-success-subtle">
+                                <i class="bi bi-check-circle-fill me-1"></i> Best Fit
+                            </span>
+                        </div>
+                    </div>
+                    <div class="d-grid">
+                        <a href="{{ url_for('main.predict') }}" class="btn btn-outline-primary fw-semibold">
+                            Try Live Prediction &rarr;
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Main Features Section -->
+<div class="container my-5">
+    <div class="text-center mb-5">
+        <span class="text-primary fw-bold text-uppercase small tracking-wide">Key Capabilities</span>
+        <h2 class="fw-bold text-slate-900 mt-1">Engineered for Academic Viva and Practical Clarity</h2>
+        <p class="text-secondary col-lg-7 mx-auto">
+            Combining rigorous Machine Learning regression with transparent bill calculation algorithms.
+        </p>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-4">
+            <div class="card card-custom h-100 p-4">
+                <div class="stat-icon bg-primary-subtle text-primary mb-3">
+                    <i class="bi bi-cpu-fill"></i>
+                </div>
+                <h5 class="fw-bold">Dual ML Regressors</h5>
+                <p class="text-secondary small mb-3">
+                    Trains and compares both <strong>Linear Regression</strong> (interpretable parametric model) and 
+                    <strong>Random Forest Regressor</strong> (non-linear ensemble). Both models are tested on 300 held-out samples.
+                </p>
+                <div class="mt-auto">
+                    <a href="{{ url_for('main.model_evaluation') }}" class="text-primary text-decoration-none small fw-semibold">
+                        Compare MAE, RMSE &amp; R² &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card card-custom h-100 p-4">
+                <div class="stat-icon bg-info-subtle text-info mb-3">
+                    <i class="bi bi-receipt-cutoff"></i>
+                </div>
+                <h5 class="fw-bold">Transparent Tariff Billing</h5>
+                <p class="text-secondary small mb-3">
+                    Decouples consumption forecasting from tariff policy. Computes 
+                    <code>Energy Charge</code>, <code>Fixed Charges</code>, and configurable 
+                    <code>Additional Surcharges</code> using decimal-safe rounding.
+                </p>
+                <div class="mt-auto">
+                    <a href="{{ url_for('main.predict') }}" class="text-info text-decoration-none small fw-semibold">
+                        Test Bill Calculator &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card card-custom h-100 p-4">
+                <div class="stat-icon bg-success-subtle text-success mb-3">
+                    <i class="bi bi-database-check"></i>
+                </div>
+                <h5 class="fw-bold">History &amp; Analytics</h5>
+                <p class="text-secondary small mb-3">
+                    Persists each prediction in an embedded SQLite database using SQLAlchemy ORM.
+                    Includes historical filtering, deletion actions, and dynamic Chart.js dashboards.
+                </p>
+                <div class="mt-auto">
+                    <a href="{{ url_for('main.history') }}" class="text-success text-decoration-none small fw-semibold">
+                        View Prediction History &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Workflow Section -->
+<div class="bg-light py-5 border-top border-bottom">
+    <div class="container">
+        <div class="text-center mb-5">
+            <span class="text-primary fw-bold text-uppercase small">Pipeline Architecture</span>
+            <h3 class="fw-bold mt-1">End-to-End Prediction Workflow</h3>
+            <p class="text-secondary">How user inputs translate into an estimated electricity bill</p>
+        </div>
+
+        <div class="row g-4 text-center">
+            <div class="col-md-3">
+                <div class="card card-custom p-4 h-100">
+                    <div class="rounded-circle bg-primary text-white mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px; font-weight: bold;">
+                        1
+                    </div>
+                    <h6 class="fw-bold">Input Validation</h6>
+                    <p class="text-secondary small mb-0">
+                        Captures daily consumption, previous month, billing cycle, and tariff parameters with strict range checks.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card card-custom p-4 h-100">
+                    <div class="rounded-circle bg-primary text-white mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px; font-weight: bold;">
+                        2
+                    </div>
+                    <h6 class="fw-bold">ML Consumption Model</h6>
+                    <p class="text-secondary small mb-0">
+                        StandardScaler transforms features and feeds selected model (LR or RF) to predict monthly kWh.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card card-custom p-4 h-100">
+                    <div class="rounded-circle bg-primary text-white mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px; font-weight: bold;">
+                        3
+                    </div>
+                    <h6 class="fw-bold">Bill Calculation</h6>
+                    <p class="text-secondary small mb-0">
+                        Calculates Energy Charge (kWh &times; Rate), Fixed Fees, and Taxes/Surcharges transparently.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-3">
+                <div class="card card-custom p-4 h-100">
+                    <div class="rounded-circle bg-primary text-white mx-auto d-flex align-items-center justify-content-center mb-3" style="width: 50px; height: 50px; font-weight: bold;">
+                        4
+                    </div>
+                    <h6 class="fw-bold">Persistence &amp; Insights</h6>
+                    <p class="text-secondary small mb-0">
+                        Saves record to SQLite, categorizes usage (Low/Moderate/High), and updates real-time analytics.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Academic Disclaimer Card -->
+<div class="container my-5">
+    <div class="card card-custom border-warning bg-warning-subtle p-4">
+        <div class="d-flex align-items-start gap-3">
+            <span class="fs-2 text-warning"><i class="bi bi-info-circle-fill"></i></span>
+            <div>
+                <h5 class="fw-bold text-dark mb-1">Academic Project Scope &amp; Estimation Notice</h5>
+                <p class="small text-secondary mb-2">
+                    This project is designed as an academic demonstration for the <strong>Master of Computer Applications (MCA)</strong> curriculum.
+                    The machine learning models estimate monthly consumption from user-supplied average daily and historical data.
+                    Actual utility billing often uses tiered telescopic slabs, peak/off-peak Time-of-Day (ToD) tariffs, power factor penalties,
+                    and government subsidies. The calculations produced by this application should be used for budgeting estimations only.
+                </p>
+                <div class="d-flex gap-2">
+                    <a href="{{ url_for('main.about') }}" class="btn btn-sm btn-outline-dark fw-semibold">
+                        Read System Documentation &rarr;
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

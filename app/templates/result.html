@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction Result #{{ record.id }} - Electricity Bill Predictor{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+
+    <!-- Out-of-Range Boundary Warning Banner if applicable -->
+    {% if is_out_of_range %}
+    <div class="alert alert-warning alert-dismissible fade show shadow-sm mb-4" role="alert">
+        <h5 class="alert-heading fw-bold d-flex align-items-center gap-2 mb-2">
+            <i class="bi bi-exclamation-triangle-fill"></i> Input Boundary Warning (Extrapolation Notice)
+        </h5>
+        <p class="small mb-2">
+            One or more of your input values are outside the statistical distribution of the training dataset.
+            The machine learning model may produce predictions with higher uncertainty:
+        </p>
+        <ul class="small mb-0">
+            {% for w in warnings %}
+                <li>{{ w }}</li>
+            {% endfor %}
+        </ul>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    {% endif %}
+
+    <!-- Top Headline Banner -->
+    <div class="card card-custom p-4 mb-4 border-primary">
+        <div class="row align-items-center gy-3">
+            <div class="col-lg-8">
+                <div class="d-flex align-items-center gap-2 mb-2">
+                    <span class="badge bg-primary px-3 py-2">Prediction #{{ record.id }}</span>
+                    <span class="text-secondary small">
+                        <i class="bi bi-clock me-1"></i> Recorded on {{ record.created_at.strftime('%Y-%m-%d %H:%M UTC') if record.created_at else 'Just now' }}
+                    </span>
+                </div>
+                <h2 class="fw-bold mb-1">Estimated Electricity Bill</h2>
+                <div class="d-flex align-items-baseline gap-2">
+                    <span class="display-5 fw-bold text-primary">₹ {{ "%.2f"|format(bill.estimated_total_bill) }}</span>
+                    <span class="text-secondary">estimated total amount</span>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 text-lg-end">
+                <div class="p-3 bg-light rounded-3 border d-inline-block text-start w-100">
+                    <div class="small text-secondary mb-1">Predicted Consumption:</div>
+                    <div class="fs-4 fw-bold text-dark">
+                        <i class="bi bi-lightning-charge-fill text-warning me-1"></i>
+                        {{ "%.2f"|format(bill.predicted_monthly_consumption_kwh) }} kWh
+                    </div>
+                    <div class="mt-2 d-flex align-items-center justify-content-between">
+                        <span class="badge bg-{{ bill.category_color }}-subtle text-{{ bill.category_color }} border border-{{ bill.category_color }}-subtle">
+                            {{ bill.usage_category }} Consumption Tier
+                        </span>
+                        {% if bill.month_change_percentage > 0 %}
+                            <span class="small text-danger fw-semibold">
+                                <i class="bi bi-arrow-up-right"></i> +{{ bill.month_change_percentage }}% vs last mo
+                            </span>
+                        {% elif bill.month_change_percentage < 0 %}
+                            <span class="small text-success fw-semibold">
+                                <i class="bi bi-arrow-down-right"></i> {{ bill.month_change_percentage }}% vs last mo
+                            </span>
+                        {% else %}
+                            <span class="small text-secondary">Same as last mo</span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Transparent Cost Breakdown -->
+        <div class="col-lg-6">
+            <div class="card card-custom h-100 p-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">
+                    <i class="bi bi-receipt text-primary me-2"></i>Transparent Cost Breakdown
+                </h5>
+                <p class="small text-secondary mb-3">
+                    Calculated using standard flat-rate billing:
+                    <code>Total = Energy Charge + Fixed Charges + Surcharges</code>
+                </p>
+
+                <div class="table-responsive">
+                    <table class="table table-custom align-middle">
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">Energy Charge</div>
+                                    <div class="small text-secondary">
+                                        {{ "%.2f"|format(bill.predicted_monthly_consumption_kwh) }} kWh &times; ₹{{ "%.2f"|format(bill.tariff_per_kwh) }}
+                                    </div>
+                                </td>
+                                <td class="text-end fw-bold fs-6">
+                                    ₹ {{ "%.2f"|format(bill.energy_charge) }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">Fixed Monthly Charges</div>
+                                    <div class="small text-secondary">Standard meter maintenance fee</div>
+                                </td>
+                                <td class="text-end fw-bold fs-6">
+                                    ₹ {{ "%.2f"|format(bill.fixed_charges) }}
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div class="fw-semibold">Additional Surcharges ({{ bill.additional_charge_percentage }}%)</div>
+                                    <div class="small text-secondary">
+                                        {{ bill.additional_charge_percentage }}% of ₹{{ "%.2f"|format(bill.energy_charge) }} (tax &amp; duty)
+                                    </div>
+                                </td>
+                                <td class="text-end fw-bold fs-6">
+                                    ₹ {{ "%.2f"|format(bill.additional_charges_amount) }}
+                                </td>
+                            </tr>
+                            <tr class="table-primary">
+                                <td class="fw-bold fs-5">
+                                    Estimated Total Bill
+                                </td>
+                                <td class="text-end fw-bold fs-5 text-primary">
+                                    ₹ {{ "%.2f"|format(bill.estimated_total_bill) }}
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="p-3 bg-light rounded small border mt-3 text-secondary">
+                    <i class="bi bi-info-circle me-1"></i>
+                    <strong>Usage Tier Interpretation:</strong> {{ bill.category_desc }}
+                </div>
+            </div>
+        </div>
+
+        <!-- Input Parameters & Model Metadata -->
+        <div class="col-lg-6">
+            <div class="card card-custom h-100 p-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">
+                    <i class="bi bi-sliders text-success me-2"></i>Input Parameters &amp; Model Metadata
+                </h5>
+
+                <ul class="list-group list-group-flush mb-4">
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span class="text-secondary">Average Daily Consumption:</span>
+                        <span class="fw-bold">{{ record.average_daily_consumption_kwh }} kWh/day</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span class="text-secondary">Previous Month Consumption:</span>
+                        <span class="fw-bold">{{ record.previous_month_consumption_kwh }} kWh</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span class="text-secondary">Billing Period Length:</span>
+                        <span class="fw-bold">{{ record.billing_days }} Days</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span class="text-secondary">Tariff Rate applied:</span>
+                        <span class="fw-bold">₹ {{ "%.2f"|format(record.tariff_per_kwh) }} / kWh</span>
+                    </li>
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <span class="text-secondary">ML Model Applied:</span>
+                        <span class="badge bg-dark">{{ record.model_name }}</span>
+                    </li>
+                </ul>
+
+                <div class="mt-auto d-flex flex-column gap-2">
+                    <div class="d-flex gap-2">
+                        <a href="{{ url_for('main.predict') }}" class="btn btn-primary-custom flex-grow-1">
+                            <i class="bi bi-plus-circle me-1"></i> New Prediction
+                        </a>
+                        <a href="{{ url_for('main.history') }}" class="btn btn-outline-secondary">
+                            <i class="bi bi-clock-history me-1"></i> View History
+                        </a>
+                    </div>
+                    <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-primary">
+                        <i class="bi bi-speedometer2 me-1"></i> Go to Analytics Dashboard
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,236 @@
+{% extends "base.html" %}
+
+{% block title %}Model Evaluation & Comparison - Electricity Bill Predictor{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-graph-up-arrow text-primary me-2"></i>Machine Learning Model Evaluation
+            </h2>
+            <p class="text-secondary mb-0">
+                Rigorous empirical comparison of <strong>Linear Regression</strong> and <strong>Random Forest Regressor</strong> 
+                evaluated on {{ metrics.dataset.test_samples if metrics.available else '300' }} held-out test samples.
+            </p>
+        </div>
+        <div>
+            <a href="{{ url_for('main.predict') }}" class="btn btn-primary-custom">
+                <i class="bi bi-calculator me-1"></i> Test in Prediction
+            </a>
+        </div>
+    </div>
+
+    {% if not metrics.available %}
+    <div class="alert alert-warning p-4 shadow-sm" role="alert">
+        <h5 class="fw-bold"><i class="bi bi-exclamation-triangle-fill me-2"></i>Evaluation Metrics Unavailable</h5>
+        <p class="mb-3">
+            The trained model artifacts or <code>metrics.json</code> were not found on the server.
+            Run the training pipeline from the project root using:
+        </p>
+        <pre class="bg-dark text-light p-3 rounded"><code>python -m app.ml.train_models</code></pre>
+    </div>
+    {% else %}
+    <!-- Model Comparison Table Card -->
+    <div class="card card-custom p-4 mb-4">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3 border-bottom pb-2">
+            <div>
+                <h5 class="fw-bold mb-0">Held-Out Test Set Performance Comparison</h5>
+                <div class="small text-secondary">
+                    Dataset Split: 80% Training ({{ metrics.dataset.train_samples }} records) | 20% Testing ({{ metrics.dataset.test_samples }} records)
+                </div>
+            </div>
+            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-3 py-2">
+                Evaluated with fixed random seed (42)
+            </span>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table table-custom table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>Algorithm</th>
+                        <th>Model Type</th>
+                        <th>MAE (kWh) &darr;</th>
+                        <th>RMSE (kWh) &darr;</th>
+                        <th>R² Score &uarr;</th>
+                        <th>Status / Recommendation</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% set lr = metrics.models.linear_regression %}
+                    {% set rf = metrics.models.random_forest %}
+                    <tr {% if metrics.comparison.selected_model_key == 'linear_regression' %}class="table-primary"{% endif %}>
+                        <td class="fw-bold fs-6">
+                            <i class="bi bi-bezier2 text-primary me-2"></i>Linear Regression
+                        </td>
+                        <td>Parametric / Linear Weights</td>
+                        <td class="fw-semibold">{{ "%.3f"|format(lr.mae) }}</td>
+                        <td class="fw-semibold">{{ "%.3f"|format(lr.rmse) }}</td>
+                        <td class="fw-bold text-success">{{ "%.4f"|format(lr.r2_score) }}</td>
+                        <td>
+                            {% if metrics.comparison.selected_model_key == 'linear_regression' %}
+                                <span class="badge bg-success text-white px-2 py-1">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Selected Model
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary">Baseline</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    <tr {% if metrics.comparison.selected_model_key == 'random_forest' %}class="table-primary"{% endif %}>
+                        <td class="fw-bold fs-6">
+                            <i class="bi bi-diagram-3-fill text-success me-2"></i>Random Forest Regressor
+                        </td>
+                        <td>Non-parametric Ensemble (100 Trees)</td>
+                        <td class="fw-semibold">{{ "%.3f"|format(rf.mae) }}</td>
+                        <td class="fw-semibold">{{ "%.3f"|format(rf.rmse) }}</td>
+                        <td class="fw-bold text-success">{{ "%.4f"|format(rf.r2_score) }}</td>
+                        <td>
+                            {% if metrics.comparison.selected_model_key == 'random_forest' %}
+                                <span class="badge bg-success text-white px-2 py-1">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Selected Model
+                                </span>
+                            {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary">Alternate Model</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="p-3 bg-light rounded-3 border mt-3">
+            <h6 class="fw-bold text-primary mb-1">
+                <i class="bi bi-info-circle me-1"></i>Selection Decision Rationale:
+            </h6>
+            <p class="small text-secondary mb-0">
+                {{ metrics.comparison.rationale }}
+            </p>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Error Bar Chart -->
+        <div class="col-lg-5">
+            <div class="card card-custom p-4 h-100">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">
+                    <i class="bi bi-bar-chart-fill text-primary me-2"></i>Error Metrics Comparison (MAE vs RMSE)
+                </h5>
+                <p class="small text-secondary mb-3">
+                    Lower error bars indicate higher prediction fidelity on unseen billing cycles.
+                </p>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="modelMetricsComparisonChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actual vs Predicted Sample Curve -->
+        <div class="col-lg-7">
+            <div class="card card-custom p-4 h-100">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">
+                    <i class="bi bi-graph-up text-success me-2"></i>Actual vs. Predicted Consumption (Test Samples)
+                </h5>
+                <p class="small text-secondary mb-3">
+                    Tracking 25 test samples across Actual Ground Truth, Linear Regression, and Random Forest.
+                </p>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="actualVsPredictedChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Coefficients & Educational Viva Cards -->
+    <div class="row g-4 mb-4">
+        <!-- Coefficients / Feature Importances -->
+        <div class="col-lg-6">
+            <div class="card card-custom p-4 h-100">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">
+                    <i class="bi bi-sliders2 text-info me-2"></i>Feature Weights &amp; Relative Importance
+                </h5>
+
+                <h6 class="small fw-bold text-uppercase text-secondary mb-2">Linear Regression Coefficients (Standardized):</h6>
+                <ul class="list-group list-group-flush mb-4 small">
+                    {% for feat, coef in lr.coefficients.items() %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+                        <code>{{ feat }}</code>
+                        <span class="badge bg-primary-subtle text-primary fs-6">{{ coef }}</span>
+                    </li>
+                    {% endfor %}
+                    <li class="list-group-item d-flex justify-content-between align-items-center px-0 text-muted">
+                        <span>Model Intercept:</span>
+                        <span>{{ lr.intercept }}</span>
+                    </li>
+                </ul>
+
+                <h6 class="small fw-bold text-uppercase text-secondary mb-2">Random Forest Feature Importance:</h6>
+                <div class="d-flex flex-column gap-2">
+                    {% for feat, imp in rf.feature_importances.items() %}
+                    <div>
+                        <div class="d-flex justify-content-between small mb-1">
+                            <span><code>{{ feat }}</code></span>
+                            <span class="fw-bold">{{ (imp * 100)|round(1) }}%</span>
+                        </div>
+                        <div class="progress" style="height: 6px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: {{ imp * 100 }}%;"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Academic Explanations of Metrics (MCA Viva Defense) -->
+        <div class="col-lg-6">
+            <div class="card card-custom p-4 h-100">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">
+                    <i class="bi bi-mortarboard text-warning me-2"></i>MCA Viva Preparation: Metric Concepts
+                </h5>
+
+                <div class="accordion" id="metricAccordion">
+                    {% for key, metric in metric_defs.items() %}
+                    <div class="accordion-item mb-2 border rounded">
+                        <h2 class="accordion-header" id="heading{{ key }}">
+                            <button class="accordion-button {% if not loop.first %}collapsed{% endif %} py-2 fw-semibold" 
+                                    type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ key }}" 
+                                    aria-expanded="{{ 'true' if loop.first else 'false' }}" aria-controls="collapse{{ key }}">
+                                {{ metric.title }} ({{ metric.unit }})
+                            </button>
+                        </h2>
+                        <div id="collapse{{ key }}" class="accordion-collapse collapse {% if loop.first %}show{% endif %}" 
+                             aria-labelledby="heading{{ key }}" data-bs-parent="#metricAccordion">
+                            <div class="accordion-body small text-secondary">
+                                <div class="bg-light p-2 rounded mb-2 font-monospace text-dark">
+                                    {{ metric.formula }}
+                                </div>
+                                <p class="mb-2">{{ metric.explanation }}</p>
+                                <div class="text-primary fw-semibold"><i class="bi bi-bullseye me-1"></i> Target: {{ metric.ideal }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if metrics.available %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const evalData = {
+            models: {{ metrics.models|tojson }},
+            samples: {{ metrics.sample_evaluations|tojson }}
+        };
+        ElectricityCharts.initEvaluationCharts(evalData);
+    });
+</script>
+{% endif %}
+{% endblock %}

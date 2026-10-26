@@ -1,0 +1,237 @@
+{% extends "base.html" %}
+
+{% block title %}Predict Electricity Bill - MCA Minor Project{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-calculator text-primary me-2"></i>Electricity Bill Estimation Form
+            </h2>
+            <p class="text-secondary mb-0">
+                Enter your historical consumption metrics and tariff settings to predict the upcoming monthly electricity bill.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('main.history') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-clock-history me-1"></i> View Past Predictions
+            </a>
+        </div>
+    </div>
+
+    <!-- Quick Preset Buttons for Demonstration -->
+    <div class="card card-custom p-3 mb-4 bg-light">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <span class="small fw-bold text-secondary text-uppercase">
+                <i class="bi bi-magic me-1"></i> Quick Test Presets (1-Click Demo):
+            </span>
+            <div class="btn-group btn-group-sm" role="group" aria-label="Demo Presets">
+                <button type="button" class="btn btn-outline-primary" data-preset="apartment">
+                    <i class="bi bi-building me-1"></i> Small Apartment (6.5 kWh/day)
+                </button>
+                <button type="button" class="btn btn-outline-primary" data-preset="medium">
+                    <i class="bi bi-house me-1"></i> Medium Home (12.8 kWh/day)
+                </button>
+                <button type="button" class="btn btn-outline-primary" data-preset="heavy">
+                    <i class="bi bi-shop me-1"></i> Heavy / Commercial (26.5 kWh/day)
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Form Column -->
+        <div class="col-lg-8">
+            <div class="card card-custom p-4">
+                <form method="POST" action="{{ url_for('main.predict') }}" id="predictionForm" novalidate>
+                    
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <i class="bi bi-speedometer text-primary me-2"></i>1. Electricity Consumption Metrics
+                    </h5>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="average_daily_consumption_kwh" class="form-label">
+                                Average Daily Consumption (kWh) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" 
+                                       step="0.01" 
+                                       min="0.01" 
+                                       max="200" 
+                                       class="form-control" 
+                                       id="average_daily_consumption_kwh" 
+                                       name="average_daily_consumption_kwh" 
+                                       value="{{ defaults.average_daily_consumption_kwh }}" 
+                                       required>
+                                <span class="input-group-text">kWh/day</span>
+                            </div>
+                            <div class="input-hint">Typical domestic range: 4.0 – 25.0 kWh/day</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="previous_month_consumption_kwh" class="form-label">
+                                Previous Month's Consumption (kWh) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" 
+                                       step="0.01" 
+                                       min="0" 
+                                       max="5000" 
+                                       class="form-control" 
+                                       id="previous_month_consumption_kwh" 
+                                       name="previous_month_consumption_kwh" 
+                                       value="{{ defaults.previous_month_consumption_kwh }}" 
+                                       required>
+                                <span class="input-group-text">kWh</span>
+                            </div>
+                            <div class="input-hint">Total units billed in the preceding cycle</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="billing_days" class="form-label">
+                                Billing Period (Days) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" 
+                                       min="1" 
+                                       max="365" 
+                                       class="form-control" 
+                                       id="billing_days" 
+                                       name="billing_days" 
+                                       value="{{ defaults.billing_days }}" 
+                                       required>
+                                <span class="input-group-text">Days</span>
+                            </div>
+                            <div class="input-hint">Standard utility cycle: usually 28 to 33 days</div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label for="model_choice" class="form-label">
+                                Machine Learning Model <span class="text-danger">*</span>
+                            </label>
+                            <select class="form-select" id="model_choice" name="model_choice">
+                                <option value="auto" selected>Automatic (Best Test Set Performance)</option>
+                                <option value="linear_regression">Linear Regression (Interpretable)</option>
+                                <option value="random_forest">Random Forest Regressor (Ensemble)</option>
+                            </select>
+                            <div class="input-hint">Select model algorithm or use empirical best fit</div>
+                        </div>
+                    </div>
+
+                    <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <i class="bi bi-cash-stack text-success me-2"></i>2. Tariff &amp; Billing Rates
+                    </h5>
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label for="tariff_per_kwh" class="form-label">
+                                Tariff Rate per kWh <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" 
+                                       step="0.01" 
+                                       min="0" 
+                                       max="100" 
+                                       class="form-control" 
+                                       id="tariff_per_kwh" 
+                                       name="tariff_per_kwh" 
+                                       value="{{ defaults.tariff_per_kwh }}" 
+                                       required>
+                                <span class="input-group-text">/ kWh</span>
+                            </div>
+                            <div class="input-hint">Flat electricity tariff rate</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="fixed_charges" class="form-label">
+                                Fixed Monthly Charges <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <span class="input-group-text">₹</span>
+                                <input type="number" 
+                                       step="0.01" 
+                                       min="0" 
+                                       max="10000" 
+                                       class="form-control" 
+                                       id="fixed_charges" 
+                                       name="fixed_charges" 
+                                       value="{{ defaults.fixed_charges }}" 
+                                       required>
+                            </div>
+                            <div class="input-hint">Meter rent or fixed monthly duty</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label for="additional_charge_percentage" class="form-label">
+                                Additional Surcharges (%) <span class="text-danger">*</span>
+                            </label>
+                            <div class="input-group">
+                                <input type="number" 
+                                       step="0.1" 
+                                       min="0" 
+                                       max="100" 
+                                       class="form-control" 
+                                       id="additional_charge_percentage" 
+                                       name="additional_charge_percentage" 
+                                       value="{{ defaults.additional_charge_percentage }}" 
+                                       required>
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <div class="input-hint">Electricity duty, green cess, or tax %</div>
+                        </div>
+                    </div>
+
+                    <div class="d-flex align-items-center justify-content-between pt-3 border-top">
+                        <button type="reset" class="btn btn-outline-secondary">
+                            <i class="bi bi-arrow-counterclockwise me-1"></i> Reset Form
+                        </button>
+                        <button type="submit" class="btn btn-primary-custom btn-lg d-flex align-items-center gap-2">
+                            <i class="bi bi-cpu-fill"></i> Run ML Prediction &rarr;
+                        </button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+
+        <!-- Right Side: Live Estimate & Helpful Info -->
+        <div class="col-lg-4">
+            <!-- Real-time Live Preview Card -->
+            <div id="live-bill-preview" class="card card-custom p-4 mb-4 border-primary bg-primary-subtle text-primary-emphasis">
+                <div class="d-flex align-items-center justify-content-between mb-2">
+                    <span class="badge bg-primary text-white">Live Calculation</span>
+                    <span class="small"><i class="bi bi-clock me-1"></i>Instant Preview</span>
+                </div>
+                <div class="small mb-1 text-secondary">Approximate Baseline Total:</div>
+                <div id="live-bill" class="display-6 fw-bold text-primary mb-2">₹ 0.00</div>
+                <div class="small text-secondary">
+                    Expected Consumption: <span id="live-kwh" class="fw-bold text-dark">0.0 kWh</span>
+                </div>
+                <div class="small text-muted mt-2">
+                    * The Machine Learning model will refine this with historical inertia and variance upon submission.
+                </div>
+            </div>
+
+            <!-- Validation & Scope Guidelines -->
+            <div class="card card-custom p-4">
+                <h6 class="fw-bold mb-3 d-flex align-items-center gap-2">
+                    <i class="bi bi-shield-check text-success"></i> Input Range Expectations
+                </h6>
+                <ul class="list-unstyled small text-secondary d-flex flex-column gap-2 mb-3">
+                    <li><i class="bi bi-check2 text-success me-1"></i> <strong>Daily usage:</strong> 2.5 – 35.0 kWh/day</li>
+                    <li><i class="bi bi-check2 text-success me-1"></i> <strong>Billing period:</strong> 28 – 33 days typical</li>
+                    <li><i class="bi bi-check2 text-success me-1"></i> <strong>Non-negativity:</strong> Zero or negative values are strictly rejected.</li>
+                    <li><i class="bi bi-check2 text-success me-1"></i> <strong>Boundaries:</strong> Out-of-distribution inputs trigger explicit warning notices.</li>
+                </ul>
+                <div class="p-3 bg-light rounded small border">
+                    <strong>Note for Viva:</strong> Preprocessing StandardScalers were fit strictly on training data to prevent target data leakage.
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+
+{% block title %}Prediction History - Electricity Bill Predictor{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-clock-history text-primary me-2"></i>Prediction History
+            </h2>
+            <p class="text-secondary mb-0">
+                All saved electricity bill predictions stored persistently in SQLite.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('main.predict') }}" class="btn btn-primary-custom">
+                <i class="bi bi-plus-circle me-1"></i> New Prediction
+            </a>
+            <a href="{{ url_for('main.dashboard') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-speedometer2 me-1"></i> Dashboard
+            </a>
+        </div>
+    </div>
+
+    <!-- Filter Toolbar -->
+    <div class="card card-custom p-3 mb-4 bg-light">
+        <form method="GET" action="{{ url_for('main.history') }}" class="row g-2 align-items-end">
+            <div class="col-md-3">
+                <label for="model" class="form-label small fw-semibold">Filter by Model</label>
+                <select name="model" id="model" class="form-select form-select-sm">
+                    <option value="">All Models</option>
+                    <option value="Linear Regression" {% if selected_model == 'Linear Regression' %}selected{% endif %}>Linear Regression</option>
+                    <option value="Random Forest Regressor" {% if selected_model == 'Random Forest Regressor' %}selected{% endif %}>Random Forest Regressor</option>
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label for="start_date" class="form-label small fw-semibold">From Date</label>
+                <input type="date" name="start_date" id="start_date" class="form-control form-control-sm" value="{{ start_date }}">
+            </div>
+            
+            <div class="col-md-3">
+                <label for="end_date" class="form-label small fw-semibold">To Date</label>
+                <input type="date" name="end_date" id="end_date" class="form-control form-control-sm" value="{{ end_date }}">
+            </div>
+            
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-sm btn-primary flex-grow-1">
+                    <i class="bi bi-funnel-fill me-1"></i> Apply Filter
+                </button>
+                <a href="{{ url_for('main.history') }}" class="btn btn-sm btn-outline-secondary">
+                    Clear
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Records Table -->
+    {% if predictions and predictions|length > 0 %}
+    <div class="card card-custom overflow-hidden mb-4">
+        <div class="table-responsive">
+            <table class="table table-custom table-hover align-middle mb-0">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Timestamp</th>
+                        <th>Inputs (Daily / Prev / Days)</th>
+                        <th>Tariff</th>
+                        <th>Predicted kWh</th>
+                        <th>Estimated Bill</th>
+                        <th>Model</th>
+                        <th>Tier</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for p in predictions %}
+                    <tr>
+                        <td class="fw-bold text-secondary">#{{ p.id }}</td>
+                        <td class="small text-secondary">
+                            {{ p.created_at.strftime('%Y-%m-%d %H:%M') if p.created_at else '—' }}
+                        </td>
+                        <td class="small">
+                            <div><strong>{{ p.average_daily_consumption_kwh }}</strong> kWh/day &bull; {{ p.billing_days }} days</div>
+                            <div class="text-muted">Prev: {{ p.previous_month_consumption_kwh }} kWh</div>
+                        </td>
+                        <td class="small">
+                            ₹{{ "%.2f"|format(p.tariff_per_kwh) }}/u
+                        </td>
+                        <td class="fw-semibold">
+                            {{ "%.2f"|format(p.predicted_monthly_consumption_kwh) }}
+                        </td>
+                        <td class="fw-bold text-primary fs-6">
+                            ₹ {{ "%.2f"|format(p.estimated_total_bill) }}
+                        </td>
+                        <td>
+                            <span class="badge bg-secondary-subtle text-secondary border border-secondary-subtle small">
+                                {{ p.model_name }}
+                            </span>
+                        </td>
+                        <td>
+                            {% set cat = p.usage_category %}
+                            <span class="badge {% if cat == 'Low' %}bg-success-subtle text-success{% elif cat == 'Moderate' %}bg-info-subtle text-info{% else %}bg-warning-subtle text-warning{% endif %}">
+                                {{ cat }}
+                            </span>
+                        </td>
+                        <td class="text-end">
+                            <div class="btn-group btn-group-sm">
+                                <a href="{{ url_for('main.prediction_detail', prediction_id=p.id) }}" 
+                                   class="btn btn-outline-primary" title="View Detailed Breakdown">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                <button type="button" 
+                                        class="btn btn-outline-danger" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#deleteConfirmModal" 
+                                        data-id="{{ p.id }}"
+                                        title="Delete Prediction">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="text-secondary small">
+        Showing {{ predictions|length }} prediction records. Records persist across server restarts in SQLite.
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="card card-custom p-5 text-center">
+        <div class="mb-3 text-secondary display-4">
+            <i class="bi bi-journal-x"></i>
+        </div>
+        <h4 class="fw-bold">No Prediction Records Found</h4>
+        <p class="text-secondary col-md-6 mx-auto mb-4">
+            {% if selected_model or start_date or end_date %}
+                No prediction records match your current filter criteria. Try resetting the filters.
+            {% else %}
+                You haven't generated any electricity bill predictions yet.
+                Fill the prediction form to create your first estimate!
+            {% endif %}
+        </p>
+        <div>
+            {% if selected_model or start_date or end_date %}
+                <a href="{{ url_for('main.history') }}" class="btn btn-outline-secondary me-2">
+                    Reset Filter
+                </a>
+            {% endif %}
+            <a href="{{ url_for('main.predict') }}" class="btn btn-primary-custom">
+                <i class="bi bi-calculator me-1"></i> Make a Prediction
+            </a>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Delete Confirmation Modal -->
+<div class="modal fade" id="deleteConfirmModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" id="deleteModalLabel">
+                    <i class="bi bi-exclamation-triangle text-danger me-2"></i>Confirm Record Deletion
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                Are you sure you want to permanently delete prediction record #<span id="modalPredictionId" class="fw-bold"></span>?
+                This action cannot be undone.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <form id="deleteForm" method="POST" action="">
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash me-1"></i> Delete Record
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

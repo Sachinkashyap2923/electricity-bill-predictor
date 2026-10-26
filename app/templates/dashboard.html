@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics Dashboard - Electricity Bill Predictor{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Header -->
+    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3 mb-4">
+        <div>
+            <h2 class="fw-bold mb-1">
+                <i class="bi bi-speedometer2 text-primary me-2"></i>Prediction Analytics Dashboard
+            </h2>
+            <p class="text-secondary mb-0">
+                Live aggregations, historical billing trends, and consumption insights computed from database records.
+            </p>
+        </div>
+        <div class="d-flex gap-2">
+            <a href="{{ url_for('main.predict') }}" class="btn btn-primary-custom">
+                <i class="bi bi-plus-circle me-1"></i> New Prediction
+            </a>
+            <a href="{{ url_for('main.model_evaluation') }}" class="btn btn-outline-secondary">
+                <i class="bi bi-graph-up-arrow me-1"></i> Model Metrics
+            </a>
+        </div>
+    </div>
+
+    {% if dash.is_empty %}
+    <!-- Empty State -->
+    <div class="card card-custom p-5 text-center my-4">
+        <div class="mb-3 text-secondary display-4">
+            <i class="bi bi-bar-chart-line"></i>
+        </div>
+        <h4 class="fw-bold">No Prediction Data Recorded Yet</h4>
+        <p class="text-secondary col-md-6 mx-auto mb-4">
+            The dashboard visualizes metrics and trends dynamically from stored predictions.
+            Once you generate predictions, statistics and interactive charts will render automatically.
+        </p>
+        <div>
+            <a href="{{ url_for('main.predict') }}" class="btn btn-primary-custom">
+                <i class="bi bi-calculator me-1"></i> Create First Prediction Now
+            </a>
+        </div>
+    </div>
+    {% else %}
+    <!-- 4 KPI Stat Cards -->
+    <div class="row g-3 mb-4">
+        <!-- Stat 1: Total Predictions -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="stat-label">Total Predictions</span>
+                    <div class="stat-icon bg-primary-subtle text-primary">
+                        <i class="bi bi-database"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-slate-800">{{ dash.total_predictions }}</div>
+                <div class="small text-secondary mt-1">Saved in SQLite database</div>
+            </div>
+        </div>
+
+        <!-- Stat 2: Average Estimated Bill -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="stat-label">Average Bill</span>
+                    <div class="stat-icon bg-success-subtle text-success">
+                        <i class="bi bi-cash-stack"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-success">₹ {{ "%.2f"|format(dash.average_estimated_bill) }}</div>
+                <div class="small text-secondary mt-1">Across all historical entries</div>
+            </div>
+        </div>
+
+        <!-- Stat 3: Latest Predicted Bill -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="stat-label">Latest Bill</span>
+                    <div class="stat-icon bg-info-subtle text-info">
+                        <i class="bi bi-receipt"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-info">₹ {{ "%.2f"|format(dash.latest_predicted_bill) }}</div>
+                <div class="small text-secondary mt-1">Most recent estimate</div>
+            </div>
+        </div>
+
+        <!-- Stat 4: Average Predicted Consumption -->
+        <div class="col-sm-6 col-lg-3">
+            <div class="stat-card">
+                <div class="d-flex align-items-center justify-content-between">
+                    <span class="stat-label">Avg Consumption</span>
+                    <div class="stat-icon bg-warning-subtle text-warning">
+                        <i class="bi bi-lightning-charge"></i>
+                    </div>
+                </div>
+                <div class="stat-value text-warning">{{ "%.2f"|format(dash.average_predicted_consumption) }}</div>
+                <div class="small text-secondary mt-1">kWh per billing cycle</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Charts Row -->
+    <div class="row g-4 mb-4">
+        <!-- Chart 1: Recent Bill & Consumption Trend -->
+        <div class="col-lg-8">
+            <div class="card card-custom p-4 h-100">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-graph-up text-primary me-2"></i>Prediction Trend (Recent Activity)
+                    </h5>
+                    <span class="small text-secondary">Bill (₹) &amp; Consumption (kWh)</span>
+                </div>
+                <div style="height: 300px; position: relative;">
+                    <canvas id="dashboardHistoryChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Chart 2: Consumption Tiers Breakdown -->
+        <div class="col-lg-4">
+            <div class="card card-custom p-4 h-100">
+                <h5 class="fw-bold mb-3">
+                    <i class="bi bi-pie-chart text-info me-2"></i>Usage Categories
+                </h5>
+                <div style="height: 250px; position: relative;">
+                    <canvas id="dashboardCategoryChart"></canvas>
+                </div>
+                <div class="row g-2 text-center small mt-2">
+                    <div class="col-4">
+                        <span class="badge bg-success-subtle text-success w-100">Low: {{ dash.category_counts.Low }}</span>
+                    </div>
+                    <div class="col-4">
+                        <span class="badge bg-info-subtle text-info w-100">Mod: {{ dash.category_counts.Moderate }}</span>
+                    </div>
+                    <div class="col-4">
+                        <span class="badge bg-warning-subtle text-warning w-100">High: {{ dash.category_counts.High }}</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Row: Recent 5 Predictions & ML Evaluation Snapshot -->
+    <div class="row g-4">
+        <!-- Recent Predictions Table -->
+        <div class="col-lg-8">
+            <div class="card card-custom p-4">
+                <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                    <h5 class="fw-bold mb-0">
+                        <i class="bi bi-list-check text-primary me-2"></i>Recent Predictions
+                    </h5>
+                    <a href="{{ url_for('main.history') }}" class="small text-primary text-decoration-none fw-semibold">
+                        View Full History &rarr;
+                    </a>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-custom table-sm align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Date</th>
+                                <th>Daily kWh</th>
+                                <th>Predicted kWh</th>
+                                <th>Estimated Bill</th>
+                                <th>Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for p in dash.recent_predictions %}
+                            <tr>
+                                <td class="fw-bold text-secondary">#{{ p.id }}</td>
+                                <td class="small text-secondary">{{ p.created_at.strftime('%d %b %H:%M') if p.created_at else '' }}</td>
+                                <td>{{ p.average_daily_consumption_kwh }}</td>
+                                <td class="fw-semibold">{{ "%.2f"|format(p.predicted_monthly_consumption_kwh) }}</td>
+                                <td class="fw-bold text-primary">₹ {{ "%.2f"|format(p.estimated_total_bill) }}</td>
+                                <td>
+                                    <a href="{{ url_for('main.prediction_detail', prediction_id=p.id) }}" class="btn btn-sm btn-outline-primary">
+                                        View
+                                    </a>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- ML Evaluation Snapshot -->
+        <div class="col-lg-4">
+            <div class="card card-custom p-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2">
+                    <i class="bi bi-award text-warning me-2"></i>Active ML Algorithm
+                </h5>
+
+                {% if metrics.available %}
+                    {% set sel = metrics.comparison.selected_model %}
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <div class="small text-secondary">Preferred Regression Model:</div>
+                        <div class="fw-bold text-primary fs-5">{{ sel }}</div>
+                        <p class="small text-secondary mb-0 mt-1">
+                            {{ metrics.comparison.rationale }}
+                        </p>
+                    </div>
+
+                    <ul class="list-unstyled small text-secondary d-flex flex-column gap-2 mb-3">
+                        <li class="d-flex justify-content-between">
+                            <span>Linear Regression RMSE:</span>
+                            <strong>{{ "%.2f"|format(metrics.models.linear_regression.rmse) }} kWh</strong>
+                        </li>
+                        <li class="d-flex justify-content-between">
+                            <span>Random Forest RMSE:</span>
+                            <strong>{{ "%.2f"|format(metrics.models.random_forest.rmse) }} kWh</strong>
+                        </li>
+                        <li class="d-flex justify-content-between">
+                            <span>Test Sample Count:</span>
+                            <strong>{{ metrics.dataset.test_samples }} units</strong>
+                        </li>
+                    </ul>
+
+                    <a href="{{ url_for('main.model_evaluation') }}" class="btn btn-outline-primary w-100 btn-sm">
+                        Inspect Detailed Evaluation &rarr;
+                    </a>
+                {% else %}
+                    <p class="small text-secondary">
+                        Model evaluation metrics are not available. Please train models via CLI:
+                        <code>python -m app.ml.train_models</code>
+                    </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+{% if not dash.is_empty %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        const dashboardData = {
+            chartLabels: {{ dash.chart_labels|tojson }},
+            chartBills: {{ dash.chart_bills|tojson }},
+            chartConsumptions: {{ dash.chart_consumptions|tojson }},
+            categoryCounts: {{ dash.category_counts|tojson }}
+        };
+        ElectricityCharts.initDashboardCharts(dashboardData);
+    });
+</script>
+{% endif %}
+{% endblock %}

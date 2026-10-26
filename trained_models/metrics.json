@@ -1,0 +1,170 @@
+{
+    "dataset": {
+        "total_samples": 1500,
+        "train_samples": 1200,
+        "test_samples": 300,
+        "test_ratio": 0.2,
+        "feature_ranges": {
+            "average_daily_consumption_kwh": {
+                "min": 3.23,
+                "max": 35.0,
+                "mean": 12.402813333333334,
+                "std": 5.268860675107857
+            },
+            "previous_month_consumption_kwh": {
+                "min": 78.78,
+                "max": 1068.12,
+                "mean": 371.8045266666667,
+                "std": 159.06054048381063
+            },
+            "billing_days": {
+                "min": 28.0,
+                "max": 33.0,
+                "mean": 30.158666666666665,
+                "std": 1.049869693408495
+            }
+        }
+    },
+    "models": {
+        "linear_regression": {
+            "name": "Linear Regression",
+            "mae": 10.8515,
+            "rmse": 13.6603,
+            "r2_score": 0.9931,
+            "coefficients": {
+                "average_daily_consumption_kwh": 149.1977,
+                "previous_month_consumption_kwh": 10.8616,
+                "billing_days": 13.1669
+            },
+            "intercept": 373.3534
+        },
+        "random_forest": {
+            "name": "Random Forest Regressor",
+            "mae": 11.9602,
+            "rmse": 15.1073,
+            "r2_score": 0.9916,
+            "n_estimators": 100,
+            "max_depth": 12,
+            "feature_importances": {
+                "average_daily_consumption_kwh": 0.9639,
+                "previous_month_consumption_kwh": 0.0303,
+                "billing_days": 0.0057
+            }
+        }
+    },
+    "comparison": {
+        "selected_model": "Linear Regression",
+        "selected_model_key": "linear_regression",
+        "rationale": "Linear Regression achieved superior generalization on the test set (RMSE = 13.66 kWh, R\u00b2 = 0.9931) with lower variance and fewer parameters."
+    },
+    "sample_evaluations": {
+        "indices": [
+            "Sample #1",
+            "Sample #2",
+            "Sample #3",
+            "Sample #4",
+            "Sample #5",
+            "Sample #6",
+            "Sample #7",
+            "Sample #8",
+            "Sample #9",
+            "Sample #10",
+            "Sample #11",
+            "Sample #12",
+            "Sample #13",
+            "Sample #14",
+            "Sample #15",
+            "Sample #16",
+            "Sample #17",
+            "Sample #18",
+            "Sample #19",
+            "Sample #20",
+            "Sample #21",
+            "Sample #22",
+            "Sample #23",
+            "Sample #24",
+            "Sample #25"
+        ],
+        "actual": [
+            199.63,
+            277.9,
+            206.2,
+            191.39,
+            483.83,
+            774.7,
+            397.23,
+            300.22,
+            267.47,
+            365.92,
+            304.09,
+            285.55,
+            266.38,
+            603.76,
+            426.07,
+            688.85,
+            248.57,
+            284.21,
+            384.36,
+            420.86,
+            186.89,
+            521.41,
+            211.69,
+            410.26,
+            509.52
+        ],
+        "linear_regression": [
+            185.06,
+            281.56,
+            213.3,
+            195.36,
+            495.13,
+            758.23,
+            391.02,
+            292.81,
+            288.44,
+            340.28,
+            297.64,
+            275.74,
+            248.44,
+            592.47,
+            416.46,
+            690.66,
+            246.0,
+            282.3,
+            387.78,
+            420.49,
+            168.22,
+            501.98,
+            204.36,
+            409.2,
+            506.58
+        ],
+        "random_forest": [
+            206.41,
+            289.08,
+            236.09,
+            207.24,
+            491.66,
+            747.64,
+            393.26,
+            309.8,
+            281.23,
+            337.66,
+            303.91,
+            277.71,
+            249.43,
+            586.93,
+            417.48,
+            700.98,
+            253.93,
+            291.53,
+            375.57,
+            406.93,
+            175.11,
+            501.38,
+            212.28,
+            407.44,
+            502.48
+        ]
+    }
+}
